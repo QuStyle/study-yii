@@ -1,0 +1,87 @@
+networks:
+  backend:
+
+services:
+  webserver:
+    image: nginx:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./src:/app
+      - ./config/nginx.frontend:/etc/nginx/conf.d/frontend.conf
+      - ./config/nginx.backend:/etc/nginx/conf.d/backend.conf
+#      - ./config/nginx.api:/etc/nginx/conf.d/api.conf
+      - ./config/nginx.conf:/etc/nginx/nginx.conf
+      - ./logs/nginx:/var/log/nginx/
+    environment:
+      FRONTEND_APP_HOST_NAME: "yii.test"
+    networks:
+      - backend
+  php:
+    build: ./config/php
+    user: "1000:1000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./src:/app
+      - ./config/php.ini:/usr/local/etc/php/php.ini
+      - ./config/php/xdebug.ini:/usr/local/etc/php/conf.d/xdebug.ini
+    environment:
+      PHP_SESSION_HANDLER: "memcached"
+      PHP_SESSION_PATH: "memcached:11211"
+      YII_DEBUG: 1
+      YII_ENV: dev
+      PHP_ENABLE_XDEBUG: ${PHP_ENABLE_XDEBUG}
+      XDEBUG_CONFIG: ${XDEBUG_CONFIG}
+      PHP_IDE_CONFIG: ${PHP_IDE_CONFIG}
+    networks:
+      - backend
+  mysql:
+    image: mariadb:10.9
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: "987654123!f"
+      MYSQL_USER: "yii"
+      MYSQL_DATABASE: "yii"
+      MYSQL_PASSWORD: "123456789"
+    volumes:
+      - ./config/my.cnf:/etc/mysql/conf.d/app.cnf
+      - ./data/mysql:/var/lib/mysql
+    networks:
+      - backend
+  mongodb:
+    image: mongo:4
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./data/mongodb:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: 'root'
+      MONGO_INITDB_ROOT_PASSWORD: 'password'
+    networks:
+      - backend
+#  php-queue:
+#    build: ./config/php
+#    user: "1000:1000"
+#    command: "php /backend/yii queue/listen --verbose=1 --color=0"
+#    restart: unless-stopped
+#    extra_hosts:
+#      - "host.docker.internal:host-gateway"
+#    volumes:
+#      - ../yii:/app
+#      - ./config/php.ini:/usr/local/etc/php/php.ini
+#      - ./config/php/xdebug.ini:/usr/local/etc/php/conf.d/xdebug.ini
+#    environment:
+#      YII_DEBUG: 1
+#      YII_ENV: dev
+#      PHP_ENABLE_XDEBUG: ${PHP_ENABLE_XDEBUG}
+#      XDEBUG_CONFIG: ${XDEBUG_CONFIG}
+#      PHP_IDE_CONFIG: ${PHP_IDE_CONFIG}
+#    depends_on:
+#      - mysql
+#      - mongodb
+#    networks:
+#      - backend
