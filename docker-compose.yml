@@ -8,24 +8,28 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./src:/app
-      - ./config/nginx.frontend:/etc/nginx/conf.d/frontend.conf
-      - ./config/nginx.backend:/etc/nginx/conf.d/backend.conf
-#      - ./config/nginx.api:/etc/nginx/conf.d/api.conf
-      - ./config/nginx.conf:/etc/nginx/nginx.conf
+      - ./src:/app/src
+      - ./api:/app/api
+      - ./project:/app/project
+      - ./config/nginx/nginx.frontend.conf:/etc/nginx/conf.d/frontend.conf
+      - ./config/nginx/nginx.api.conf:/etc/nginx/conf.d/api.conf
+      - ./config/nginx/nginx.project.conf:/etc/nginx/project.conf
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./logs/nginx:/var/log/nginx/
     environment:
       FRONTEND_APP_HOST_NAME: "yii.test"
     networks:
       - backend
+
   php:
-    build: ./config/php
+    build: ./docker/php
     user: "1000:1000"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+      - "api.yii.test:host-gateway"
     volumes:
-      - ./src:/app
-      - ./config/php.ini:/usr/local/etc/php/php.ini
+      - ./src:/app/src
+      - ./config/php/php.ini:/usr/local/etc/php/php.ini
       - ./config/php/xdebug.ini:/usr/local/etc/php/conf.d/xdebug.ini
     environment:
       PHP_SESSION_HANDLER: "memcached"
@@ -37,6 +41,47 @@ services:
       PHP_IDE_CONFIG: ${PHP_IDE_CONFIG}
     networks:
       - backend
+
+  php-api:
+    build: ./docker/php
+    user: "1000:1000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./api:/app/api
+      - ./config/php/php.ini:/usr/local/etc/php/php.ini
+      - ./config/php/xdebug.api.ini:/usr/local/etc/php/conf.d/xdebug.ini
+    environment:
+      PHP_SESSION_HANDLER: "memcached"
+      PHP_SESSION_PATH: "memcached:11211"
+      YII_DEBUG: 1
+      YII_ENV: dev
+      PHP_ENABLE_XDEBUG: ${PHP_ENABLE_XDEBUG}
+      XDEBUG_CONFIG: ${XDEBUG_CONFIG_API}
+      PHP_IDE_CONFIG: ${PHP_IDE_CONFIG_API}
+    networks:
+      - backend
+
+  php-project:
+    build: ./docker/php
+    user: "1000:1000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./api:/app/project
+      - ./config/php/php.ini:/usr/local/etc/php/php.ini
+      - ./config/php/xdebug.project.ini:/usr/local/etc/php/conf.d/xdebug.ini
+    environment:
+      PHP_SESSION_HANDLER: "memcached"
+      PHP_SESSION_PATH: "memcached:11211"
+      YII_DEBUG: 1
+      YII_ENV: dev
+      PHP_ENABLE_XDEBUG: ${PHP_ENABLE_XDEBUG}
+      XDEBUG_CONFIG: ${XDEBUG_CONFIG_PROJECT}
+      PHP_IDE_CONFIG: ${PHP_IDE_CONFIG_PROJECT}
+    networks:
+      - backend
+
   mysql:
     image: mariadb:10.9
     ports:
@@ -47,10 +92,11 @@ services:
       MYSQL_DATABASE: "yii"
       MYSQL_PASSWORD: "123456789"
     volumes:
-      - ./config/my.cnf:/etc/mysql/conf.d/app.cnf
+      - ./config/mysql/my.cnf:/etc/mysql/conf.d/app.cnf
       - ./data/mysql:/var/lib/mysql
     networks:
       - backend
+
   mongodb:
     image: mongo:4
     restart: always
@@ -63,25 +109,3 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: 'password'
     networks:
       - backend
-#  php-queue:
-#    build: ./config/php
-#    user: "1000:1000"
-#    command: "php /backend/yii queue/listen --verbose=1 --color=0"
-#    restart: unless-stopped
-#    extra_hosts:
-#      - "host.docker.internal:host-gateway"
-#    volumes:
-#      - ../yii:/app
-#      - ./config/php.ini:/usr/local/etc/php/php.ini
-#      - ./config/php/xdebug.ini:/usr/local/etc/php/conf.d/xdebug.ini
-#    environment:
-#      YII_DEBUG: 1
-#      YII_ENV: dev
-#      PHP_ENABLE_XDEBUG: ${PHP_ENABLE_XDEBUG}
-#      XDEBUG_CONFIG: ${XDEBUG_CONFIG}
-#      PHP_IDE_CONFIG: ${PHP_IDE_CONFIG}
-#    depends_on:
-#      - mysql
-#      - mongodb
-#    networks:
-#      - backend
