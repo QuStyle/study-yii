@@ -41,6 +41,7 @@ RUN docker-php-ext-install -j$(getconf _NPROCESSORS_ONLN) \
     bcmath \
     pcntl \
     pdo_pgsql \
+    pdo_mysql \
     sockets \
     zip
 
